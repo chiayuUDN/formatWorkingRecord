@@ -8,6 +8,13 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 var app = express();
+// 跨域問題
+let allowCrossDomain = function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  next();
+}
+app.use(allowCrossDomain);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
