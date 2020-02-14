@@ -5,4 +5,6 @@ npm install 以下套件:
     express
     cookie-parser
     morgan
+    jade
+    tedious
 ```
