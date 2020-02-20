@@ -12,6 +12,7 @@ var app = express();
 let allowCrossDomain = function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 }
 app.use(allowCrossDomain);
@@ -47,7 +48,6 @@ app.use(function(err, req, res, next) {
 
 var port = process.env.port || 3000;
 app.listen(port, () => {
-  console.log('----------- 開始聆聽 -----------')
   console.log('Listening on port: '+ port);
 })
 
