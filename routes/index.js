@@ -68,69 +68,135 @@ function querySQL(requestString, res){
   })
 }
 // ----- 建立 Create -----
-router.post('/api/add/type', (req, res, next) => {
-  let payload = {
-    Name: req.body.Name,
-  }
-    
-  const tableName = 'udnD_Type';
-  const requestString = `
-    if (exists(select * from ` + tableName + ` where Type_Name= N'` + payload.Name + `')) begin
-      select 'false' as 'successful', N'欄位已有此名稱' as 'msg'
-      for json path 
-    end else begin
-      insert into ` + tableName + `(Type_Name)
-      values(N'` + payload.Name + `')
-      select 'true' as 'successful', N'已加入: `+ payload.Name +`' as 'msg'
-      for json path
-    end
-  `
-  querySQL(requestString, res)
-})
+const addData01 = {
+  add: ['employee','type'],
+  table: ['udnD_Employee','udnD_Type'],
+  fieldName: ['Employee_Name', 'Type_Name']
+}
+
+for(let i = 0; i < addData01.add.length; i++){
+  router.post('/api/add/' + addData01.add[i] , (req, res) => {
+    const table = addData01.table[i]
+    const fieldName = addData01.fieldName[i]
+    let payload = {
+      Name: req.body.Name,
+    }
+    const requestString = `
+      declare @Name nvarchar(50) = N'` + payload.Name + `'
+      declare @IsEnable int
+      select @IsEnable = isEnable from ` + table + ` where ` + fieldName + ` = @Name
+      if(@IsEnable = 1) begin
+        /* 已有資料  */
+        select N'欄位已有此名稱' as 'msg'
+        for json path
+      end else begin
+        if(@IsEnable is null) begin
+          /* INSERT */
+          insert into ` + table + `(` + fieldName + `)
+          values(@Name)
+        end else begin
+          /* UPDATE  */
+          update ` + table + `
+          set isEnable = 1
+          where ` + fieldName + ` = @Name
+        end
+        select N'已加入:'+@Name+'' as 'msg'
+        for json path
+      end
+    `
+  
+    querySQL(requestString, res)
+  })
+}
+
+const addData02 = {
+  add: ['project','item'],
+  table : ['udnD_Project','udnD_Item'],
+  fieldName: ['Project_Name', 'Item_Name'],
+  fieldID : ['Type_ID', 'Project_ID'],
+}
+for(let i = 0; i < addData02.add.length; i++){
+  router.post('/api/add/' + addData02.add[i], (req, res) => {
+    const table = addData02.table[i]
+    const fieldName = addData02.fieldName[i]
+    const fieldID = addData02.fieldID[i]
+    let payload = {
+      FK_ID: req.body.FK_ID,
+      Name: req.body.Name,
+    }
+    const requestString = `
+      declare @Name nvarchar(50) = N'` + payload.Name + `'
+      declare @IsEnable int
+      declare @ID int = ` + payload.FK_ID + `
+      select @IsEnable = isEnable 
+      from ` + table + ` 
+      where ` + fieldName + ` = @Name AND `+ fieldID +`= @ID
+      if(@IsEnable = 1) begin
+        /* 已有資料  */
+        select N'欄位已有此名稱' as 'msg'
+        for json path
+      end else begin
+        if(@IsEnable is null) begin
+          /* INSERT */
+          insert into ` + table + `(` + fieldName + `, `+ fieldID +` )
+          values(@Name, @ID)
+        end else begin
+          /* UPDATE  */
+          update ` + table + `
+          set isEnable = 1
+          where ` + fieldName + ` = @Name
+        end
+        select N'已加入:'+@Name+'' as 'msg'
+        for json path
+      end
+    `
+  
+    querySQL(requestString, res)
+  })
+}
 
 // ----- 讀取 Read -----
+const readData01 = {
+  read : ['employee','type'],
+  table : ['udnD_Employee','udnD_Type']
+}
 
-router.post('/api/read/type', (req, res) => {
-  const tableName = 'udnD_Type';
-  const requestString = `
-    select * from ` + tableName + ` 
-    for json auto
-  `
-  querySQL(requestString, res);
-})
+for(let i = 0; i < readData01.read.length; i++){
+  router.post('/api/read/' + readData01.read[i], (req,res) => {
+    const requestString = `
+      select * from ` + readData01.table[i] + ` 
+      for json path
+    `
+    querySQL(requestString, res);
+  })
+}
 
-router.post('/api/read/project', (req, res) => {
-  const tableName = 'udnD_Project';
-  let payload = {
-    FID: req.body.FID,
-  }
-  const requestString = `
-    select * from ` + tableName + `  where Type_ID = ` + payload.FID + `
-    for json path
-  `
-  querySQL(requestString, res);
-})
+const readData02 = {
+  read : ['project','item'],
+  table : ['udnD_Project','udnD_Item'],
+  fieldID : ['Type_ID', 'Project_ID'],
+}
 
-router.post('/api/read/item', (req, res) => {
-  const tableName = 'udnD_Item';
-  let payload = {
-    FID: req.body.FID,
-  }
-  const requestString = `
-    select * from ` + tableName + `  where Project_ID = ` + payload.FID + `
-    for json path
-  `
-  querySQL(requestString, res);
-})
-
-router.post('/api/read/employee', (req,res) => {
-  const tableName = 'udnD_Employee';
-  const requestString = `
-    select * from ` + tableName + ` 
-    for json auto
-  `
-  querySQL(requestString, res);
-})
+for(let i = 0; i < readData02.read.length; i++){
+  router.post('/api/read/' + readData02.read[i], (req, res) => {
+    const table = readData02.table[i];
+    const fieldID = readData02.fieldID[i]
+    let payload = {
+      FK_ID: req.body.FK_ID,
+    }
+    const requestString = `
+      declare @ID int = ` + payload.FK_ID + `
+      if(exists(select * from ` + table + ` where ` + fieldID + ` = @ID)) begin
+        select * from ` + table + ` where ` + fieldID + ` = @ID
+          for json path
+      end else begin 
+        select N'無資料' as 'msg'
+          for json path
+      end
+    `
+    querySQL(requestString, res);
+  })
+}
 
 // ----- 更新 Update -----
 router.put('/api/update/type', (req, res) => {
@@ -158,8 +224,57 @@ router.put('/api/update/type', (req, res) => {
 
 
 // ----- 刪除 Delete -----
-router.delete('/api/delete/type', (req, res) => {
-  res.send('Doing delete')
-})
+const deletData01 = {
+  delete : ['employee', 'type', 'project', 'item'],
+  table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
+  fieldName: ['Employee_Name', 'Type_Name', 'Project_Name', 'Item_Name']
+}
+for(let i = 0; i < deletData01.delete.length; i++){
+  router.post('/api/delete/' + deletData01.delete[i], (req, res) => {
+    const table = deletData01.table[i];
+    const fieldName = deletData01.fieldName[i]
+    let payload = {
+      Name: req.body.Name,
+    }
+    const requestString = `
+    update ` + table + ` 
+    set isEnable = 0
+    where ` + fieldName + ` = N'` + payload.Name + `'
+    select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
+    for json path
+    `
+    querySQL(requestString, res);
+  })
+}
+
+// router.post('/api/delete/project', (req, res) => {
+//   let payload = {
+//     Name: req.body.Name,
+//   }
+//   const tableName = 'udnD_Project';
+//   const requestString = `
+//   update ` + tableName + ` 
+//   set isEnable = 0
+//   where Project_Name = N'` + payload.Name + `'
+//   select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
+//   for json path
+//   `
+//   querySQL(requestString, res);
+// })
+
+// router.post('/api/delete/item', (req, res) => {
+//   let payload = {
+//     Name: req.body.Name,
+//   }
+//   const tableName = 'udnD_Item';
+//   const requestString = `
+//   update ` + tableName + ` 
+//   set isEnable = 0
+//   where Item_Name = N'` + payload.Name + `'
+//   select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
+//   for json path
+//   `
+//   querySQL(requestString, res);
+// })
 
 module.exports = router;
