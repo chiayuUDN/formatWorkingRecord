@@ -113,13 +113,13 @@ const addData02 = {
   add: ['project','item'],
   table : ['udnD_Project','udnD_Item'],
   fieldName: ['Project_Name', 'Item_Name'],
-  fieldID : ['Type_ID', 'Project_ID'],
+  fieldFID : ['Type_ID', 'Project_ID'],
 }
 for(let i = 0; i < addData02.add.length; i++){
   router.post('/api/add/' + addData02.add[i], (req, res) => {
     const table = addData02.table[i]
     const fieldName = addData02.fieldName[i]
-    const fieldID = addData02.fieldID[i]
+    const fieldFID = addData02.fieldFID[i]
     let payload = {
       FK_ID: req.body.FK_ID,
       Name: req.body.Name,
@@ -130,7 +130,7 @@ for(let i = 0; i < addData02.add.length; i++){
       declare @ID int = ` + payload.FK_ID + `
       select @IsEnable = isEnable 
       from ` + table + ` 
-      where ` + fieldName + ` = @Name AND `+ fieldID +`= @ID
+      where ` + fieldName + ` = @Name AND `+ fieldFID +`= @ID
       if(@IsEnable = 1) begin
         /* 已有資料  */
         select N'欄位已有此名稱' as 'msg'
@@ -138,7 +138,7 @@ for(let i = 0; i < addData02.add.length; i++){
       end else begin
         if(@IsEnable is null) begin
           /* INSERT */
-          insert into ` + table + `(` + fieldName + `, `+ fieldID +` )
+          insert into ` + table + `(` + fieldName + `, `+ fieldFID +` )
           values(@Name, @ID)
         end else begin
           /* UPDATE  */
@@ -179,54 +179,29 @@ for(let i = 0; i < readData01.read.length; i++){
 const readData02 = {
   read : ['project','item'],
   table : ['udnD_Project','udnD_Item'],
-  fieldID : ['Type_ID', 'Project_ID'],
+  fieldFID : ['Type_ID', 'Project_ID'],
 }
 
 for(let i = 0; i < readData02.read.length; i++){
   router.post('/api/read/' + readData02.read[i], (req, res) => {
     const table = readData02.table[i];
-    const fieldID = readData02.fieldID[i]
+    const fieldFID = readData02.fieldFID[i]
     let payload = {
       FK_ID: req.body.FK_ID,
     }
     const requestString = `
       declare @ID int = ` + payload.FK_ID + `
-      if(exists(select * from ` + table + ` where ` + fieldID + ` = @ID AND isEnable = 1)) begin
-        select * from ` + table + ` where ` + fieldID + ` = @ID AND isEnable = 1
-          for json path
+      if(exists(select * from ` + table + ` where ` + fieldFID + ` = @ID AND isEnable = 1)) begin
+        select * from ` + table + ` where ` + fieldFID + ` = @ID AND isEnable = 1
+        for json path
       end else begin 
         select N'無資料' as 'msg'
-          for json path
+        for json path
       end
     `
     querySQL(requestString, res);
   })
 }
-
-// ----- 更新 Update -----
-router.put('/api/update/type', (req, res) => {
-  console.log('----- begin -----');
-  let payload = {
-    ID: req.body.ID,
-    Name: req.body.Name,
-  }
-
-  const tableName = 'udnD_Type';
-  const requestString = `
-    if(exists(select * from ` + tableName + ` where Type_ID=` + payload.ID + `)) begin
-      update ` + tableName + `
-      set Type_Name = N'` + payload.Name + `'
-      where Type_ID = ` + payload.ID + `
-      select 'true' as 'successful', N'已更新: `+ payload.Name +`' as 'msg'
-      for json path
-    end else begin
-      select 'false' as 'successful', N'沒有此ID' as 'msg'
-      for json path
-    end
-  `
-  querySQL(requestString, res);
-})
-
 
 // ----- 刪除 Delete -----
 const deleteData01 = {
@@ -263,10 +238,30 @@ for(let i = 0; i < enableOpenData01.enableOpen.length; i++){
     const table = deleteData01.table[i];
     
     const requestString = `
-    update ` + table + ` set isEnable = 1
-    select 'true' as 'successful', N'Enable已全部打開' as 'msg'
-    for json path
+      update ` + table + ` set isEnable = 1
+      select N'已還原被刪除項目' as 'msg'
+      for json path
     `
+    querySQL(requestString, res);
+  })
+}
+
+// ----- reset全部歸零設定 -----
+const resetData01 = {
+  reset: ['employee', 'type', 'project', 'item'],
+  table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
+}
+
+for(let i = 0; i < resetData01.reset.length; i++){
+  router.post('/reset/' + resetData01.reset[i], (req, res) => {
+    const table = resetData01.table[i]
+    const requestString = `
+      delete ` + table + `
+      dbcc checkident(` + table + `, RESEED, 0)
+      select N'` + table + `已全部歸零' as 'msg'
+      for json path
+    `
+
     querySQL(requestString, res);
   })
 }
