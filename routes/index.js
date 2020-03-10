@@ -164,8 +164,13 @@ const readData01 = {
 for(let i = 0; i < readData01.read.length; i++){
   router.post('/api/read/' + readData01.read[i], (req,res) => {
     const requestString = `
-      select * from ` + readData01.table[i] + ` 
-      for json path
+      if(exists(select * from ` + readData01.table[i] + ` where isEnable = 1)) begin
+        select * from ` + readData01.table[i] + ` where isEnable = 1
+        for json path
+      end else begin 
+        select N'無資料' as 'msg'
+        for json path
+      end
     `
     querySQL(requestString, res);
   })
@@ -186,8 +191,8 @@ for(let i = 0; i < readData02.read.length; i++){
     }
     const requestString = `
       declare @ID int = ` + payload.FK_ID + `
-      if(exists(select * from ` + table + ` where ` + fieldID + ` = @ID)) begin
-        select * from ` + table + ` where ` + fieldID + ` = @ID
+      if(exists(select * from ` + table + ` where ` + fieldID + ` = @ID AND isEnable = 1)) begin
+        select * from ` + table + ` where ` + fieldID + ` = @ID AND isEnable = 1
           for json path
       end else begin 
         select N'無資料' as 'msg'
@@ -224,22 +229,23 @@ router.put('/api/update/type', (req, res) => {
 
 
 // ----- 刪除 Delete -----
-const deletData01 = {
+const deleteData01 = {
   delete : ['employee', 'type', 'project', 'item'],
   table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
-  fieldName: ['Employee_Name', 'Type_Name', 'Project_Name', 'Item_Name']
+  fieldID: ['Employee_ID', 'Type_ID', 'Project_ID', 'Item_ID']
 }
-for(let i = 0; i < deletData01.delete.length; i++){
-  router.post('/api/delete/' + deletData01.delete[i], (req, res) => {
-    const table = deletData01.table[i];
-    const fieldName = deletData01.fieldName[i]
+for(let i = 0; i < deleteData01.delete.length; i++){
+  router.post('/api/delete/' + deleteData01.delete[i], (req, res) => {
+    const table = deleteData01.table[i];
+    const fieldID = deleteData01.fieldID[i]
     let payload = {
+      ID: req.body.ID,
       Name: req.body.Name,
     }
     const requestString = `
     update ` + table + ` 
     set isEnable = 0
-    where ` + fieldName + ` = N'` + payload.Name + `'
+    where ` + fieldID + ` = '` + payload.ID + `'
     select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
     for json path
     `
@@ -247,34 +253,22 @@ for(let i = 0; i < deletData01.delete.length; i++){
   })
 }
 
-// router.post('/api/delete/project', (req, res) => {
-//   let payload = {
-//     Name: req.body.Name,
-//   }
-//   const tableName = 'udnD_Project';
-//   const requestString = `
-//   update ` + tableName + ` 
-//   set isEnable = 0
-//   where Project_Name = N'` + payload.Name + `'
-//   select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
-//   for json path
-//   `
-//   querySQL(requestString, res);
-// })
-
-// router.post('/api/delete/item', (req, res) => {
-//   let payload = {
-//     Name: req.body.Name,
-//   }
-//   const tableName = 'udnD_Item';
-//   const requestString = `
-//   update ` + tableName + ` 
-//   set isEnable = 0
-//   where Item_Name = N'` + payload.Name + `'
-//   select 'true' as 'successful', N'已刪除:` + payload.Name + `' as 'msg'
-//   for json path
-//   `
-//   querySQL(requestString, res);
-// })
+// ----- 還原已被刪除項目(update Enable = 1) -----
+const enableOpenData01 = {
+  enableOpen : ['employee', 'type', 'project', 'item'],
+  table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
+}
+for(let i = 0; i < enableOpenData01.enableOpen.length; i++){
+  router.post('/enableOpen/' + enableOpenData01.enableOpen[i], (req, res) => {
+    const table = deleteData01.table[i];
+    
+    const requestString = `
+    update ` + table + ` set isEnable = 1
+    select 'true' as 'successful', N'Enable已全部打開' as 'msg'
+    for json path
+    `
+    querySQL(requestString, res);
+  })
+}
 
 module.exports = router;
