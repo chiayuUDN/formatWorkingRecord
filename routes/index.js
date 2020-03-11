@@ -92,12 +92,12 @@ for(let i = 0; i < addData01.add.length; i++){
       end else begin
         if(@IsEnable is null) begin
           /* INSERT */
-          insert into ` + table + `(` + fieldName + `)
-          values(@Name)
+          insert into ` + table + `(` + fieldName + `, time)
+          values(@Name, GETDATE())
         end else begin
           /* UPDATE  */
           update ` + table + `
-          set isEnable = 1
+          set isEnable = 1, time = GETDATE()
           where ` + fieldName + ` = @Name
         end
         select N'已加入:'+@Name+'' as 'msg'
@@ -138,12 +138,12 @@ for(let i = 0; i < addData02.add.length; i++){
       end else begin
         if(@IsEnable is null) begin
           /* INSERT */
-          insert into ` + table + `(` + fieldName + `, `+ fieldFID +` )
-          values(@Name, @ID)
+          insert into ` + table + `(` + fieldName + `, `+ fieldFID +`, time )
+          values(@Name, @ID, GETDATE())
         end else begin
           /* UPDATE  */
           update ` + table + `
-          set isEnable = 1
+          set isEnable = 1, time = GETDATE()
           where ` + fieldName + ` = @Name
         end
         select N'已加入:'+@Name+'' as 'msg'
