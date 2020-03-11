@@ -247,23 +247,44 @@ for(let i = 0; i < enableOpenData01.enableOpen.length; i++){
 }
 
 // ----- reset全部歸零設定 -----
-const resetData01 = {
-  reset: ['employee', 'type', 'project', 'item'],
-  table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
-}
+// const resetData01 = {
+//   reset: ['employee', 'type', 'project', 'item'],
+//   table : ['udnD_Employee', 'udnD_Type', 'udnD_Project', 'udnD_Item'],
+// }
 
-for(let i = 0; i < resetData01.reset.length; i++){
-  router.post('/reset/' + resetData01.reset[i], (req, res) => {
-    const table = resetData01.table[i]
-    const requestString = `
-      delete ` + table + `
-      dbcc checkident(` + table + `, RESEED, 0)
-      select N'` + table + `已全部歸零' as 'msg'
-      for json path
-    `
+// for(let i = 0; i < resetData01.reset.length; i++){
+//   router.post('/reset/' + resetData01.reset[i], (req, res) => {
+//     const table = resetData01.table[i]
+//     const requestString = `
+//       delete ` + table + `
+//       dbcc checkident(` + table + `, RESEED, 0)
+//       select N'` + table + `已全部歸零' as 'msg'
+//       for json path
+//     `
 
-    querySQL(requestString, res);
-  })
-}
+//     querySQL(requestString, res);
+//   })
+// }
+
+router.post('/reset', (req, res) => {
+  const requestString = `
+    delete udnD_Item
+    dbcc checkident(udnD_Item, RESEED, 0)
+    
+    delete udnD_Project
+    dbcc checkident(udnD_Project, RESEED, 0)
+    
+    delete udnD_Type
+    dbcc checkident(udnD_Type, RESEED, 0)
+
+    delete udnD_Employee
+    dbcc checkident(udnD_Employee, RESEED, 0)
+
+    select N'全部表格已全部歸零' as 'msg'
+    for json path
+  `
+
+  querySQL(requestString, res);
+})
 
 module.exports = router;
